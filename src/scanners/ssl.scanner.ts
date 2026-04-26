@@ -9,22 +9,27 @@ interface CertificateIdentity {
 
 const EXPIRY_WARNING_DAYS = 30;
 const TLS_CRITICAL_VERSIONS = new Set(["TLSv1", "TLSv1.0", "TLSv1.1"]);
+const SSL_SCAN_TIMEOUT_MS = 5000;
 
 export async function scanSSL(hostname: string): Promise<SSLScanResult> {
-  const certificate = await sslChecker(hostname, {
-    timeout: 5000,
-    warnDays: EXPIRY_WARNING_DAYS,
-  });
+  try {
+    const certificate = await withTimeout(
+      sslChecker(hostname, {
+        timeout: SSL_SCAN_TIMEOUT_MS,
+        warnDays: EXPIRY_WARNING_DAYS,
+      }),
+      SSL_SCAN_TIMEOUT_MS,
+    );
 
-  const findings: SSLFinding[] = [];
-  const expiresAt = certificate.validTo;
-  const daysLeft = certificate.daysRemaining;
-  const tlsVersion = certificate.protocol;
-  const selfSigned = isSelfSignedCertificate(
-    certificate.subject,
-    certificate.issuer,
-    certificate.validationError,
-  );
+    const findings: SSLFinding[] = [];
+    const expiresAt = certificate.validTo;
+    const daysLeft = certificate.daysRemaining;
+    const tlsVersion = certificate.protocol;
+    const selfSigned = isSelfSignedCertificate(
+      certificate.subject,
+      certificate.issuer,
+      certificate.validationError,
+    );
 
   if (certificate.valid) {
     findings.push({
@@ -102,20 +107,46 @@ export async function scanSSL(hostname: string): Promise<SSLScanResult> {
     });
   }
 
-  return {
-    valid: certificate.valid,
-    expiresAt,
-    daysLeft,
-    tlsVersion,
-    score: calculateScore({
+    return {
       valid: certificate.valid,
-      expired: daysLeft < 0,
-      expiringSoon: daysLeft >= 0 && daysLeft < EXPIRY_WARNING_DAYS,
-      deprecatedTls: TLS_CRITICAL_VERSIONS.has(tlsVersion),
-      selfSigned,
-    }),
-    findings,
-  };
+      expiresAt,
+      daysLeft,
+      tlsVersion,
+      score: calculateScore({
+        valid: certificate.valid,
+        expired: daysLeft < 0,
+        expiringSoon: daysLeft >= 0 && daysLeft < EXPIRY_WARNING_DAYS,
+        deprecatedTls: TLS_CRITICAL_VERSIONS.has(tlsVersion),
+        selfSigned,
+      }),
+      findings,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "timeout") {
+      return {
+        status: "timeout",
+        valid: false,
+        expiresAt: "",
+        daysLeft: 0,
+        tlsVersion: "",
+        score: 0,
+        findings: [{ message: "timeout" }],
+      };
+    }
+
+    throw error;
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+
+    promise
+      .then((value) => resolve(value))
+      .catch((error) => reject(error))
+      .finally(() => clearTimeout(timeout));
+  });
 }
 
 function isSelfSignedCertificate(

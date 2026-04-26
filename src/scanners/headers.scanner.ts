@@ -43,7 +43,7 @@ const POINTS_PER_HEADER = 100 / HEADER_CHECKS.length;
 
 export async function scanHeaders(url: string): Promise<HeaderScanResult> {
   const response = await axios.get(url, {
-    maxRedirects: 5,
+    maxRedirects: 3,
     timeout: 5000,
   });
 

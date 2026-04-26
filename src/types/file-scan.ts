@@ -1,6 +1,11 @@
 export type FileSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
 export type FileFindingStatus = "exposed" | "safe";
 
+export interface TimeoutFinding {
+  message: string;
+  severity?: string;
+}
+
 export interface ExposedFile {
   path: string;
   severity: FileSeverity;
@@ -17,7 +22,8 @@ export interface FileFinding {
 }
 
 export interface FileScanResult {
+  status?: "timeout";
   exposedFiles: ExposedFile[];
   score: number;
-  findings: FileFinding[];
+  findings: Array<FileFinding | TimeoutFinding>;
 }

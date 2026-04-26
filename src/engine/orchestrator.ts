@@ -19,7 +19,7 @@ import type {
 
 export type ScanMessageSender = (
   scanId: string,
-  message: ScanProgressMessage,
+  message: unknown,
 ) => void;
 
 type ModuleResultMap = {
@@ -29,56 +29,17 @@ type ModuleResultMap = {
   files: FileScanResult;
 };
 
-const GLOBAL_SCAN_TIMEOUT_MS = 30000; // 30 second global timeout for entire scan
+const GLOBAL_SCAN_TIMEOUT_MS = 20000; // 20 second global timeout for entire scan
 
 export async function runScan(
   scanId: string,
   url: string,
   ws: ScanMessageSender,
+  closeClients: (scanId: string) => void,
   startedAt = new Date().toISOString(),
 ): Promise<ScanResult> {
   const normalizedUrl = normalizeUrl(url);
   const hostname = new URL(normalizedUrl).hostname;
-
-  // Create global timeout promise
-  const globalTimeoutPromise = new Promise<{
-    settled: PromiseSettledResult<any>[];
-  }>((resolve) =>
-    setTimeout(() => {
-      resolve({
-        settled: [
-          { status: "rejected", reason: { module: "headers", message: "Timeout" } },
-          { status: "rejected", reason: { module: "ssl", message: "Timeout" } },
-          { status: "rejected", reason: { module: "ports", message: "Timeout" } },
-          { status: "rejected", reason: { module: "files", message: "Timeout" } },
-        ],
-      });
-    }, GLOBAL_SCAN_TIMEOUT_MS)
-  );
-
-  const scanPromise = (async () => {
-    const moduleResults: ScanModuleResults = {
-      headers: null,
-      ssl: null,
-      ports: null,
-      files: null,
-    };
-    const errors: ScanModuleError[] = [];
-
-    const tasks = [
-      runModule("headers", scanHeaders(normalizedUrl), scanId, ws),
-      runModule("ssl", scanSSL(hostname), scanId, ws),
-      runModule("ports", scanPorts(hostname), scanId, ws),
-      runModule("files", scanFiles(normalizedUrl), scanId, ws),
-    ];
-
-    const settled = await Promise.allSettled(tasks);
-
-    return { settled };
-  })();
-
-  // Race scan against global timeout
-  const { settled } = await Promise.race([scanPromise, globalTimeoutPromise]);
 
   const moduleResults: ScanModuleResults = {
     headers: null,
@@ -88,12 +49,31 @@ export async function runScan(
   };
   const errors: ScanModuleError[] = [];
 
-  for (const item of settled) {
-    if (item.status === "fulfilled") {
-      assignModuleResult(moduleResults, item.value);
-    } else {
-      errors.push(item.reason as ScanModuleError);
-    }
+  const tasks = [
+    runModule("headers", scanHeaders(normalizedUrl), scanId, ws).then((value) =>
+      assignModuleResult(moduleResults, value),
+    ),
+    runModule("ssl", scanSSL(hostname), scanId, ws).then((value) =>
+      assignModuleResult(moduleResults, value),
+    ),
+    runModule("ports", scanPorts(hostname), scanId, ws).then((value) =>
+      assignModuleResult(moduleResults, value),
+    ),
+    runModule("files", scanFiles(normalizedUrl), scanId, ws).then((value) =>
+      assignModuleResult(moduleResults, value),
+    ),
+  ];
+
+  const timedOut = await Promise.race([
+    Promise.allSettled(tasks).then(() => false),
+    sleep(GLOBAL_SCAN_TIMEOUT_MS).then(() => true),
+  ]);
+
+  if (timedOut) {
+    fillTimeoutResultIfMissing("headers", moduleResults, scanId, ws);
+    fillTimeoutResultIfMissing("ssl", moduleResults, scanId, ws);
+    fillTimeoutResultIfMissing("ports", moduleResults, scanId, ws);
+    fillTimeoutResultIfMissing("files", moduleResults, scanId, ws);
   }
 
   const grade = calculateGrade(moduleResults);
@@ -102,7 +82,7 @@ export async function runScan(
     scanId,
     url: normalizedUrl,
     hostname,
-    status: errors.length === 0 ? "completed" : "failed",
+    status: "completed",
     startedAt,
     completedAt,
     results: moduleResults,
@@ -111,6 +91,13 @@ export async function runScan(
   };
 
   saveScanResult(result);
+
+  ws(scanId, {
+    scanId,
+    status: result.status,
+    result,
+  });
+  closeClients(scanId);
 
   return result;
 }
@@ -153,7 +140,7 @@ async function runModule<TModule extends ScanModule>(
       module,
       status: "completed",
       result,
-    });
+    } satisfies ScanProgressMessage);
 
     return { module, result };
   } catch (error) {
@@ -164,12 +151,135 @@ async function runModule<TModule extends ScanModule>(
       module,
       status: "failed",
       error: message,
-    });
+    } satisfies ScanProgressMessage);
 
-    throw {
-      module,
-      message,
-    } satisfies ScanModuleError;
+    return { module, result: errorResultForModule(module, message) };
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function fillTimeoutResultIfMissing(
+  module: ScanModule,
+  moduleResults: ScanModuleResults,
+  scanId: string,
+  send: ScanMessageSender,
+): void {
+  switch (module) {
+    case "headers": {
+      if (moduleResults.headers !== null) {
+        return;
+      }
+
+      const result = timeoutResultForModule("headers");
+      moduleResults.headers = result;
+      send(scanId, { scanId, module, status: "timeout", result } satisfies ScanProgressMessage);
+      break;
+    }
+    case "ssl": {
+      if (moduleResults.ssl !== null) {
+        return;
+      }
+
+      const result = timeoutResultForModule("ssl");
+      moduleResults.ssl = result;
+      send(scanId, { scanId, module, status: "timeout", result } satisfies ScanProgressMessage);
+      break;
+    }
+    case "ports": {
+      if (moduleResults.ports !== null) {
+        return;
+      }
+
+      const result = timeoutResultForModule("ports");
+      moduleResults.ports = result;
+      send(scanId, { scanId, module, status: "timeout", result } satisfies ScanProgressMessage);
+      break;
+    }
+    case "files": {
+      if (moduleResults.files !== null) {
+        return;
+      }
+
+      const result = timeoutResultForModule("files");
+      moduleResults.files = result;
+      send(scanId, { scanId, module, status: "timeout", result } satisfies ScanProgressMessage);
+      break;
+    }
+  }
+}
+
+function timeoutResultForModule<TModule extends ScanModule>(
+  module: TModule,
+): ModuleResultMap[TModule] {
+  switch (module) {
+    case "headers":
+      return {
+        status: "timeout",
+        score: 0,
+        findings: [{ message: "timeout" }],
+      } as unknown as ModuleResultMap[TModule];
+    case "ssl":
+      return {
+        status: "timeout",
+        valid: false,
+        expiresAt: "",
+        daysLeft: 0,
+        tlsVersion: "",
+        score: 0,
+        findings: [{ message: "timeout" }],
+      } as unknown as ModuleResultMap[TModule];
+    case "ports":
+      return {
+        status: "timeout",
+        openPorts: [],
+        riskyPorts: [],
+        score: 0,
+        findings: [{ message: "timeout" }],
+      } as unknown as ModuleResultMap[TModule];
+    case "files":
+      return {
+        status: "timeout",
+        exposedFiles: [],
+        score: 0,
+        findings: [{ message: "timeout" }],
+      } as unknown as ModuleResultMap[TModule];
+  }
+}
+
+function errorResultForModule<TModule extends ScanModule>(
+  module: TModule,
+  message: string,
+): ModuleResultMap[TModule] {
+  switch (module) {
+    case "headers":
+      return {
+        score: 0,
+        findings: [{ message }],
+      } as unknown as ModuleResultMap[TModule];
+    case "ssl":
+      return {
+        valid: false,
+        expiresAt: "",
+        daysLeft: 0,
+        tlsVersion: "",
+        score: 0,
+        findings: [{ message }],
+      } as unknown as ModuleResultMap[TModule];
+    case "ports":
+      return {
+        openPorts: [],
+        riskyPorts: [],
+        score: 0,
+        findings: [{ message }],
+      } as unknown as ModuleResultMap[TModule];
+    case "files":
+      return {
+        exposedFiles: [],
+        score: 0,
+        findings: [{ message }],
+      } as unknown as ModuleResultMap[TModule];
+  }
+}

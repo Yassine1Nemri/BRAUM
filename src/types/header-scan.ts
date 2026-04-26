@@ -5,7 +5,13 @@ export interface HeaderFinding {
   recommendation: string | null;
 }
 
+export interface TimeoutFinding {
+  message: string;
+  severity?: string;
+}
+
 export interface HeaderScanResult {
+  status?: "timeout";
   score: number;
-  findings: HeaderFinding[];
+  findings: Array<HeaderFinding | TimeoutFinding>;
 }

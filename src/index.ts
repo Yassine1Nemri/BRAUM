@@ -6,7 +6,11 @@ import cors from "cors";
 import { createScanRecord, getScanHistory, getScanResult } from "./db/database.js";
 import { runScan } from "./engine/orchestrator.js";
 import { normalizeUrl } from "./utils/url.js";
-import { broadcastToClient, setupWebSocketServer } from "./websocket/ws.server.js";
+import {
+  broadcastToClient,
+  closeClientsForScan,
+  setupWebSocketServer,
+} from "./websocket/ws.server.js";
 
 const app = express();
 const port = 3000;
@@ -51,21 +55,13 @@ app.post("/api/scan", (req, res) => {
   });
 
   setImmediate(() => {
-    void runScan(scanId, normalizedUrl, broadcastToClient, startedAt)
-      .then((result) => {
-        broadcastToClient(scanId, {
-          scanId,
-          status: result.status,
-          result,
-        });
-      })
-      .catch((error) => {
-        broadcastToClient(scanId, {
-          scanId,
-          status: "failed",
-          error: error instanceof Error ? error.message : "Unknown scan error",
-        });
-      });
+    void runScan(
+      scanId,
+      normalizedUrl,
+      broadcastToClient,
+      closeClientsForScan,
+      startedAt,
+    );
   });
 });
 

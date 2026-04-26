@@ -7,11 +7,17 @@ export interface SSLFinding {
   recommendation: string | null;
 }
 
+export interface TimeoutFinding {
+  message: string;
+  severity?: string;
+}
+
 export interface SSLScanResult {
+  status?: "timeout";
   valid: boolean;
   expiresAt: string;
   daysLeft: number;
   tlsVersion: string;
   score: number;
-  findings: SSLFinding[];
+  findings: Array<SSLFinding | TimeoutFinding>;
 }

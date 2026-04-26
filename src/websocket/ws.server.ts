@@ -49,6 +49,24 @@ export function broadcastToClient(scanId: string, message: unknown): void {
   }
 }
 
+export function closeClientsForScan(scanId: string): void {
+  const clients = clientsByScanId.get(scanId);
+
+  if (clients === undefined) {
+    return;
+  }
+
+  for (const client of clients) {
+    try {
+      client.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  clientsByScanId.delete(scanId);
+}
+
 function addClient(scanId: string, socket: WebSocket): void {
   const clients = clientsByScanId.get(scanId) ?? new Set<WebSocket>();
 

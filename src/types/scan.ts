@@ -5,7 +5,7 @@ import type { PortScanResult } from "./port-scan.js";
 import type { SSLScanResult } from "./ssl-scan.js";
 
 export type ScanModule = "headers" | "ssl" | "ports" | "files";
-export type ScanModuleStatus = "completed" | "failed";
+export type ScanModuleStatus = "completed" | "failed" | "timeout";
 export type ScanStatus = "processing" | "completed" | "failed";
 
 export interface ScanModuleResults {

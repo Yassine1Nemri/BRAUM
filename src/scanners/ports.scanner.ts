@@ -5,21 +5,19 @@ const PORTS_TO_SCAN = [
   21, 22, 23, 25, 80, 443, 3000, 3306, 5432, 5900, 6379, 8080, 8443, 27017,
 ];
 const HIGH_RISK_PORTS = new Set([21, 23, 3306, 5432, 6379, 27017]);
-const CONNECT_TIMEOUT_MS = 1500;
+const CONNECT_TIMEOUT_MS = 800;
 const RISKY_PORT_PENALTY = 20;
-const GLOBAL_PORT_SCAN_TIMEOUT_MS = 10000; // 10 second global timeout
+const GLOBAL_PORT_SCAN_TIMEOUT_MS = 8000; // 8 second global timeout
 
 export async function scanPorts(hostname: string): Promise<PortScanResult> {
-  // Create global timeout promise
-  const timeoutPromise = new Promise<PortScanResult>(() => {
-    // This will be raced against the actual scan
-  });
+  const controller = new AbortController();
+  const globalTimeout = setTimeout(() => controller.abort(), GLOBAL_PORT_SCAN_TIMEOUT_MS);
 
-  const scanPromise = (async () => {
+  try {
     const results = await Promise.all(
       PORTS_TO_SCAN.map(async (port) => ({
         port,
-        status: await checkPort(hostname, port),
+        status: await checkPort(hostname, port, controller.signal),
       })),
     );
 
@@ -38,26 +36,28 @@ export async function scanPorts(hostname: string): Promise<PortScanResult> {
       score,
       findings,
     };
-  })();
+  } catch (error) {
+    if (controller.signal.aborted) {
+      return {
+        status: "timeout",
+        openPorts: [],
+        riskyPorts: [],
+        score: 0,
+        findings: [{ message: "timeout" }],
+      };
+    }
 
-  // Race the scan against global timeout
-  return Promise.race([
-    scanPromise,
-    new Promise<PortScanResult>((resolve) =>
-      setTimeout(() => {
-        // Return partial results on timeout
-        resolve({
-          openPorts: [],
-          riskyPorts: [],
-          score: 50,
-          findings: [],
-        });
-      }, GLOBAL_PORT_SCAN_TIMEOUT_MS)
-    ),
-  ]);
+    throw error;
+  } finally {
+    clearTimeout(globalTimeout);
+  }
 }
 
-function checkPort(hostname: string, port: number): Promise<PortStatus> {
+function checkPort(
+  hostname: string,
+  port: number,
+  signal: AbortSignal,
+): Promise<PortStatus> {
   return new Promise((resolve) => {
     const socket = net.createConnection({ host: hostname, port });
 
@@ -66,6 +66,13 @@ function checkPort(hostname: string, port: number): Promise<PortStatus> {
       socket.destroy();
       resolve(status);
     };
+
+    if (signal.aborted) {
+      finish("closed");
+      return;
+    }
+
+    signal.addEventListener("abort", () => finish("closed"), { once: true });
 
     socket.setTimeout(CONNECT_TIMEOUT_MS);
     socket.once("connect", () => finish("open"));

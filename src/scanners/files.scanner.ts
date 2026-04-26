@@ -30,8 +30,8 @@ const SCORE_PENALTIES: Record<FileSeverity, number> = {
   HIGH: 20,
   MEDIUM: 10,
 };
-const REQUEST_TIMEOUT_MS = 3000; // Changed from 4000ms to 3000ms
-const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests
+const REQUEST_TIMEOUT_MS = 2000;
+const MAX_CONCURRENT_REQUESTS = 3;
 
 export async function scanFiles(baseUrl: string): Promise<FileScanResult> {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
