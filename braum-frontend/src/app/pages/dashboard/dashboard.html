@@ -1,0 +1,70 @@
+<div class="min-h-screen bg-gray-900 text-white p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Scan Dashboard</h1>
+    <p class="text-gray-400 mb-8">Scan ID: {{ scanId }}</p>
+
+    <!-- Loading State -->
+    <div *ngIf="!scanResult" class="text-center py-12">
+      <div class="inline-block">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p class="text-gray-400">Loading scan results...</p>
+      </div>
+    </div>
+
+    <!-- Processing State -->
+    <div *ngIf="scanResult && scanResult.status === 'processing'" class="text-center py-12">
+      <div class="inline-block">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-4"></div>
+        <p class="text-gray-400">Scan is processing...</p>
+        <p class="text-sm text-gray-500 mt-2">Updates will appear automatically</p>
+      </div>
+    </div>
+
+    <!-- Results Display -->
+    <div *ngIf="scanResult && scanResult.status === 'completed'" class="space-y-8">
+      <!-- Progress Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <app-module-card
+          *ngFor="let module of modules"
+          [moduleName]="module"
+          [moduleResult]="scanResult.results[module]"
+          [overallStatus]="scanResult.status"
+        ></app-module-card>
+      </div>
+
+      <!-- Grade Badge -->
+      <div class="text-center">
+        <app-score-badge [grade]="scanResult.grade.grade"></app-score-badge>
+        <p class="text-gray-400 mt-2">Overall Score: {{ scanResult.grade.score }}/100</p>
+      </div>
+
+      <!-- Findings List -->
+      <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Findings</h2>
+        <div class="space-y-4">
+          <div *ngFor="let module of modules">
+            <h3 class="text-lg font-medium capitalize mb-2">{{ module }}</h3>
+            <ul class="space-y-2">
+              <li *ngFor="let finding of scanResult.results[module].findings" class="flex items-start space-x-2">
+                <span
+                  class="inline-block w-2 h-2 rounded-full mt-2"
+                  [ngClass]="{
+                    'bg-red-500': finding.severity === 'CRITICAL' || finding.severity === 'HIGH',
+                    'bg-yellow-500': finding.severity === 'MEDIUM',
+                    'bg-green-500': finding.severity === 'LOW' || finding.severity === 'info'
+                  }"
+                ></span>
+                <span class="text-sm">{{ finding.message }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="scanResult && scanResult.status === 'failed'" class="text-center py-12">
+      <p class="text-red-400">Scan failed. Please try again.</p>
+    </div>
+  </div>
+</div>

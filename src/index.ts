@@ -12,7 +12,11 @@ const port = 3000;
 const server = createServer(app);
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:4200', 'http://localhost:4201'],
+  methods: ['GET', 'POST', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {

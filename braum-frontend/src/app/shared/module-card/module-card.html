@@ -1,0 +1,21 @@
+<div class="bg-gray-800 rounded-lg p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg font-semibold capitalize">{{ moduleName }}</h3>
+    <span class="text-2xl">{{ statusIcon }}</span>
+  </div>
+  <div *ngIf="moduleResult" class="mb-4">
+    <p class="text-2xl font-bold text-blue-400">{{ moduleResult.score }}/100</p>
+  </div>
+  <div *ngIf="!moduleResult" class="mb-4">
+    <p class="text-gray-400">Scanning...</p>
+  </div>
+  <ul *ngIf="moduleResult" class="space-y-2">
+    <li *ngFor="let finding of moduleResult.findings.slice(0, 3)" class="flex items-start space-x-2 text-sm">
+      <span>{{ findingIcon(finding.severity) }}</span>
+      <span class="text-gray-300">{{ finding.message }}</span>
+    </li>
+    <li *ngIf="moduleResult.findings.length > 3" class="text-gray-400 text-sm">
+      ... and {{ moduleResult.findings.length - 3 }} more findings
+    </li>
+  </ul>
+</div>
