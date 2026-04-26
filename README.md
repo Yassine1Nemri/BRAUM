@@ -12,10 +12,10 @@ Built for small teams and startups who care about security without enterprise to
 ![Angular](https://img.shields.io/badge/Angular-17+-DD0031?style=for-the-badge&logo=angular&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3+-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-Live-brightgreen?style=for-the-badge)
 
-![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Active-success?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 </div>
@@ -24,12 +24,9 @@ Built for small teams and startups who care about security without enterprise to
 
 ## 🔍 What is BRAUM?
 
-BRAUM is a **DevSecOps web application** that performs a full security audit on any publicly accessible website. Enter a URL and get a real-time security grade — like running SSL Labs, SecurityHeaders.io, and a basic recon tool all at once.
+BRAUM is a **full-stack DevSecOps web application** that performs a real-time security audit on any publicly accessible website. Enter a URL and get a live security grade — like running SSL Labs, SecurityHeaders.io, and a basic recon tool all at once.
 
-It's designed to be:
-- **Fast** — all 4 scan modules run in parallel
-- **Visual** — live WebSocket progress, charts, severity badges
-- **Actionable** — every finding comes with a clear recommendation
+> Built from scratch as a hands-on DevSecOps learning project — every scanner, every endpoint, every component written and understood line by line.
 
 ---
 
@@ -37,14 +34,14 @@ It's designed to be:
 
 | Module | Description |
 |--------|-------------|
-| 🧢 **Headers Scanner** | Checks for CSP, HSTS, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy |
+| 🧢 **Headers Scanner** | Checks CSP, HSTS, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy |
 | 🔐 **SSL/TLS Analyzer** | Validates certificate, checks expiry, TLS version (1.2/1.3), flags weak ciphers |
-| 🔌 **Port Scanner** | Probes 14 common ports, flags dangerous ones (22, 3306, 6379 exposed publicly) |
+| 🔌 **Port Scanner** | Probes 14 common ports, flags dangerous ones (3306, 6379, 27017 exposed publicly) |
 | 📂 **File Prober** | Tries sensitive paths like `/.env`, `/.git`, `/admin`, `/wp-config.php` |
 | 🏆 **Security Grade** | Combines all modules into a final A → F grade with per-module breakdown |
-| 📊 **Live Dashboard** | Real-time scan progress via WebSocket + Chart.js severity breakdown |
+| 📊 **Live Dashboard** | Real-time scan progress via WebSocket + polling fallback |
 | 🕘 **Scan History** | Stores and retrieves past scans (SQLite) |
-| 📄 **PDF Export** | Download a full audit report |
+| ⏱️ **Timeout Protection** | 30s global scan timeout, prevents hanging on slow/malicious targets |
 
 ---
 
@@ -52,35 +49,37 @@ It's designed to be:
 
 ```
 braum/
-├── braum-frontend/          # Angular 17 SPA
-│   ├── pages/
-│   │   ├── home/            # URL input
-│   │   ├── dashboard/       # Live results
-│   │   └── history/         # Past scans
-│   └── shared/components/
-│       ├── score-badge/     # A/B/C/D/F grade
-│       ├── module-card/     # Per-module results
-│       └── severity-chart/  # Chart.js donut
+├── src/                         # Node.js + Express Backend
+│   ├── index.ts                 # Express server + HTTP server
+│   ├── scanners/
+│   │   ├── headers.scanner.ts   # HTTP response header analysis
+│   │   ├── ssl.scanner.ts       # TLS/cert checker
+│   │   ├── ports.scanner.ts     # TCP socket port scanner
+│   │   └── files.scanner.ts     # Sensitive path prober
+│   ├── engine/
+│   │   ├── orchestrator.ts      # Promise.allSettled runner + WS emitter
+│   │   └── scorer.ts            # A-F grade calculator
+│   ├── websocket/
+│   │   └── ws.server.ts         # Real-time WebSocket server
+│   └── db/
+│       └── database.ts          # SQLite scan history
 │
-└── braum-backend/           # Node.js + Express API
-    ├── scanners/
-    │   ├── headers.scanner.ts
-    │   ├── ssl.scanner.ts
-    │   ├── ports.scanner.ts
-    │   └── files.scanner.ts
-    ├── engine/
-    │   ├── orchestrator.ts  # Promise.all runner + WS emitter
-    │   └── scorer.ts        # Grade calculator
-    └── websocket/
-        └── ws.server.ts     # Real-time updates
+└── braum-frontend/              # Angular 17 SPA
+    └── src/app/
+        ├── pages/
+        │   ├── home/            # URL input + scan trigger
+        │   └── dashboard/       # Live results + grade
+        └── shared/
+            ├── score-badge/     # A/B/C/D/F colored badge
+            └── module-card/     # Per-module result card
 ```
 
 ---
 
 ## 🧰 Tech Stack
 
-**Frontend** — Angular 17, TailwindCSS, Chart.js, WebSocket client, jsPDF  
-**Backend** — Node.js, Express, `ws`, `axios`, `ssl-checker`, `net` (built-in), `better-sqlite3`  
+**Frontend** — Angular 17, TailwindCSS, WebSocket client  
+**Backend** — Node.js, Express, TypeScript, `ws`, `axios`, `ssl-checker`, `net` (built-in), `better-sqlite3`  
 **Validation** — Zod  
 **Security middleware** — Helmet, CORS
 
@@ -88,14 +87,12 @@ braum/
 
 ## 📊 Scoring System
 
-Each module returns a score 0–100. The final grade is a weighted average.
-
 | Module  | Weight | Key Signals |
 |---------|--------|-------------|
 | Headers | 30%    | 6 security headers × ~16pts each |
 | SSL/TLS | 30%    | Validity + expiry + TLS 1.3 support |
 | Ports   | 20%    | -20pts per dangerous open port |
-| Files   | 20%    | -50pts per critical file exposed |
+| Files   | 20%    | -50pts CRITICAL, -20pts HIGH, -10pts MEDIUM |
 
 | Score | Grade |
 |-------|-------|
@@ -110,8 +107,7 @@ Each module returns a score 0–100. The final grade is a weighted average.
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-- Node.js 18+
+- Node.js 20+
 - Angular CLI 17+
 
 ### Installation
@@ -122,7 +118,6 @@ git clone https://github.com/Yassine1Nemri/BRAUM.git
 cd BRAUM
 
 # Backend
-cd braum-backend
 npm install
 npm run dev          # http://localhost:3000
 
@@ -137,57 +132,36 @@ ng serve             # http://localhost:4200
 ## 📡 API Reference
 
 ```
-POST  /api/scan          →  Start a scan, returns scan_id
+POST  /api/scan          →  Start a scan, returns scanId
 GET   /api/scan/:id      →  Get full scan result
 GET   /api/history       →  List past scans
-WS    ws://localhost:3000 →  Real-time scan progress
-```
-
-**WebSocket message format:**
-```json
-{
-  "scanId": "abc123",
-  "module": "ssl",
-  "status": "complete",
-  "result": { "valid": true, "grade": "A", "daysLeft": 87 }
-}
+WS    ws://localhost:3000/ws?scanId=:id  →  Real-time progress
 ```
 
 ---
 
 ## 🗺️ Roadmap
 
-### Phase 1 — Backend Core
-- [ ] Express server + WebSocket setup
-- [ ] Headers scanner
-- [ ] SSL/TLS scanner
-- [ ] Port scanner
-- [ ] File prober
-- [ ] Orchestrator (`Promise.all` parallel runner)
-- [ ] Scorer & grade engine
-- [ ] SQLite scan history
-
-### Phase 2 — Frontend
-- [ ] Angular project + Tailwind setup
-- [ ] URL input page
-- [ ] Live WebSocket progress tracker
-- [ ] Module result cards
-- [ ] Score badge + severity chart
-
-### Phase 3 — Polish
-- [ ] PDF export
-- [ ] Scan history page
-- [ ] Dark mode
-- [ ] Recommendations engine
-- [ ] Docker Compose setup
+- [x] Headers scanner
+- [x] SSL/TLS scanner  
+- [x] Port scanner
+- [x] Sensitive file prober
+- [x] Scoring engine (A-F grade)
+- [x] Real-time WebSocket dashboard
+- [x] Scan history (SQLite)
+- [x] Global scan timeout
+- [ ] PDF report export
+- [ ] DNS/SPF/DMARC analysis
+- [ ] CORS misconfiguration detection
+- [ ] Docker Compose
+- [ ] Deploy online
 
 ---
 
 ## ⚠️ Ethical Use
 
 > BRAUM is intended for **authorized security testing only**.  
-> Only scan domains you **own or have explicit permission** to test.  
-> The authors are not responsible for misuse of this tool.
+> Only scan domains you **own or have explicit permission** to test.
 
 ---
 
@@ -200,4 +174,4 @@ WS    ws://localhost:3000 →  Real-time scan progress
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT License
