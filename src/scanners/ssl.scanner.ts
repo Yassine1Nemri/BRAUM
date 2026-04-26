@@ -1,22 +1,5 @@
 import { sslChecker } from "ssl-checker";
-
-export type SSLFindingSeverity = "info" | "warning" | "critical";
-
-export interface SSLFinding {
-  check: string;
-  severity: SSLFindingSeverity;
-  message: string;
-  recommendation?: string;
-}
-
-export interface SSLScanResult {
-  valid: boolean;
-  expiresAt: string;
-  daysLeft: number;
-  tlsVersion: string;
-  score: number;
-  findings: SSLFinding[];
-}
+import type { SSLFinding, SSLScanResult } from "../types/ssl-scan.js";
 
 interface CertificateIdentity {
   CN: string;
@@ -48,6 +31,7 @@ export async function scanSSL(hostname: string): Promise<SSLScanResult> {
       check: "certificate-validity",
       severity: "info",
       message: "Certificate is valid.",
+      recommendation: null,
     });
   } else {
     findings.push({
@@ -81,6 +65,7 @@ export async function scanSSL(hostname: string): Promise<SSLScanResult> {
       check: "certificate-expiry",
       severity: "info",
       message: `Certificate expires in ${daysLeft} day(s).`,
+      recommendation: null,
     });
   }
 
@@ -96,6 +81,7 @@ export async function scanSSL(hostname: string): Promise<SSLScanResult> {
       check: "tls-version",
       severity: "info",
       message: `Server negotiated ${tlsVersion}.`,
+      recommendation: null,
     });
   }
 
@@ -112,6 +98,7 @@ export async function scanSSL(hostname: string): Promise<SSLScanResult> {
       check: "self-signed-certificate",
       severity: "info",
       message: "Certificate does not appear to be self-signed.",
+      recommendation: null,
     });
   }
 

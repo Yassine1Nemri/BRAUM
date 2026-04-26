@@ -1,28 +1,5 @@
 import axios, { AxiosError } from "axios";
-
-export type FileSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
-export type FileFindingStatus = "exposed" | "safe";
-
-export interface ExposedFile {
-  path: string;
-  severity: FileSeverity;
-  statusCode: number;
-}
-
-export interface FileFinding {
-  path: string;
-  severity: FileSeverity;
-  status: FileFindingStatus;
-  statusCode: number | null;
-  message: string;
-  recommendation?: string;
-}
-
-export interface FileScanResult {
-  exposedFiles: ExposedFile[];
-  score: number;
-  findings: FileFinding[];
-}
+import type { FileFinding, FileScanResult, FileSeverity } from "../types/file-scan.js";
 
 interface FileProbe {
   path: string;
@@ -99,16 +76,17 @@ async function scanFile(
     };
   }
 
-  return {
-    path: probe.path,
-    severity: probe.severity,
-    status: "safe",
-    statusCode,
-    message:
-      statusCode === null
-        ? `${probe.path} did not return an exposed response.`
-        : `${probe.path} returned HTTP ${statusCode}.`,
-  };
+    return {
+      path: probe.path,
+      severity: probe.severity,
+      status: "safe",
+      statusCode,
+      message:
+        statusCode === null
+          ? `${probe.path} did not return an exposed response.`
+          : `${probe.path} returned HTTP ${statusCode}.`,
+      recommendation: null,
+    };
 }
 
 async function headStatus(url: string): Promise<number | null> {

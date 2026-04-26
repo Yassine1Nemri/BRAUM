@@ -1,22 +1,5 @@
 import net from "node:net";
-
-export type PortStatus = "open" | "closed";
-export type PortRisk = "low" | "high";
-
-export interface PortFinding {
-  port: number;
-  status: PortStatus;
-  risk: PortRisk;
-  message: string;
-  recommendation?: string;
-}
-
-export interface PortScanResult {
-  openPorts: number[];
-  riskyPorts: number[];
-  score: number;
-  findings: PortFinding[];
-}
+import type { PortFinding, PortScanResult, PortStatus } from "../types/port-scan.js";
 
 const PORTS_TO_SCAN = [
   21, 22, 23, 25, 80, 443, 3000, 3306, 5432, 5900, 6379, 8080, 8443, 27017,
@@ -87,6 +70,7 @@ function createFinding(port: number, status: PortStatus): PortFinding {
       status,
       risk: "low",
       message: `Port ${port} is open.`,
+      recommendation: null,
     };
   }
 
@@ -95,5 +79,6 @@ function createFinding(port: number, status: PortStatus): PortFinding {
     status,
     risk: highRisk ? "high" : "low",
     message: `Port ${port} is closed.`,
+    recommendation: null,
   };
 }

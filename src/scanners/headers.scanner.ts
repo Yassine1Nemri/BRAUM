@@ -1,17 +1,5 @@
 import axios from "axios";
-
-export interface HeaderFinding {
-  header: string;
-  status: "present" | "missing";
-  value: string | null;
-  recommendation?: string;
-}
-
-export interface HeaderScanResult {
-  url: string;
-  score: number;
-  findings: HeaderFinding[];
-}
+import type { HeaderScanResult } from "../types/header-scan.js";
 
 interface HeaderCheck {
   name: string;
@@ -65,26 +53,24 @@ export async function scanHeaders(url: string): Promise<HeaderScanResult> {
     if (value !== undefined) {
       return {
         header: headerCheck.name,
-        status: "present" as const,
+        present: true,
         value: Array.isArray(value) ? value.join(", ") : String(value),
+        recommendation: null,
       };
     }
 
     return {
       header: headerCheck.name,
-      status: "missing" as const,
+      present: false,
       value: null,
       recommendation: headerCheck.recommendation,
     };
   });
 
-  const presentHeaderCount = findings.filter(
-    (finding) => finding.status === "present",
-  ).length;
+  const presentHeaderCount = findings.filter((finding) => finding.present).length;
   const score = Number((presentHeaderCount * POINTS_PER_HEADER).toFixed(1));
 
   return {
-    url,
     score,
     findings,
   };
