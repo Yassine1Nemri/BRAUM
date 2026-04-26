@@ -1,14 +1,17 @@
-<div class="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-  <div class="max-w-md w-full space-y-8">
-    <div class="text-center">
-      <h1 class="text-6xl font-bold text-white mb-2">BRAUM</h1>
-      <p class="text-gray-400">Website Security Scanner</p>
-    </div>
-    <form (ngSubmit)="onSubmit()" class="space-y-6">
-      <div>
-        <label for="url" class="block text-sm font-medium text-gray-300 mb-2">
-          Website URL
-        </label>
+<div class="home">
+  <main class="container fade-in" aria-labelledby="braum-title">
+    <header class="brand">
+      <div class="logo" id="braum-title">
+        <span class="shield" aria-hidden="true">🛡️</span>
+        <span class="word">BRAUM</span>
+      </div>
+      <p class="subtitle">Website Security Posture Scanner</p>
+      <p class="tagline">Scan any URL for headers, SSL, ports and exposed files</p>
+    </header>
+
+    <form class="scan-form" (ngSubmit)="onSubmit()">
+      <label class="sr-only" for="url">Target URL</label>
+      <div class="input-row">
         <input
           type="url"
           id="url"
@@ -16,15 +19,35 @@
           name="url"
           required
           placeholder="https://example.com"
-          class="w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-400 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="url-input"
+          [attr.aria-invalid]="errorMessage ? 'true' : 'false'"
+          [disabled]="isScanning"
         />
+
+        <button
+          type="submit"
+          class="scan-btn"
+          [disabled]="isScanning || !url.trim()"
+        >
+          <ng-container *ngIf="!isScanning">Scan Now</ng-container>
+          <span *ngIf="isScanning" class="btn-loading">
+            <span class="spinner" aria-hidden="true"></span>
+            Scanning...
+          </span>
+        </button>
       </div>
-      <button
-        type="submit"
-        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        Scan Now
-      </button>
+
+      <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
     </form>
-  </div>
+
+    <div class="stats" aria-label="Scanner capabilities">
+      <span class="badge">4 Scanners</span>
+      <span class="badge">Real-time Results</span>
+      <span class="badge">Security Grade A-F</span>
+    </div>
+
+    <footer class="footer">
+      Only scan domains you own or have permission to test
+    </footer>
+  </main>
 </div>
