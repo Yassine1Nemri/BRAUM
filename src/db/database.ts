@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import type { ScanHistoryItem, ScanResult, ScanStatus } from "../types/scan.js";
+import type { ScanHistoryItem, ScanInProgress, ScanResult, ScanStatus } from "../types/scan.js";
 
 const db = new Database("braum.sqlite");
 
@@ -32,7 +32,7 @@ export function createScanRecord(input: {
       status,
       started_at
     ) VALUES (?, ?, ?, ?, ?)`,
-  ).run(input.scanId, input.url, input.hostname, "running", input.startedAt);
+  ).run(input.scanId, input.url, input.hostname, "processing", input.startedAt);
 }
 
 export function saveScanResult(result: ScanResult): void {
@@ -54,16 +54,51 @@ export function saveScanResult(result: ScanResult): void {
   );
 }
 
-export function getScanResult(scanId: string): ScanResult | null {
+export function getScanResult(scanId: string): ScanResult | ScanInProgress | null {
   const row = db
-    .prepare("SELECT result_json FROM scans WHERE scan_id = ?")
-    .get(scanId) as { result_json: string | null } | undefined;
+    .prepare(
+      `SELECT
+        scan_id AS scanId,
+        url,
+        hostname,
+        score,
+        grade,
+        status,
+        started_at AS startedAt,
+        completed_at AS completedAt,
+        result_json AS resultJson
+      FROM scans
+      WHERE scan_id = ?`,
+    )
+    .get(scanId) as
+    | {
+        scanId: string;
+        url: string;
+        hostname: string;
+        score: number;
+        grade: string;
+        status: ScanStatus;
+        startedAt: string;
+        completedAt: string | null;
+        resultJson: string | null;
+      }
+    | undefined;
 
-  if (row?.result_json === undefined || row.result_json === null) {
+  if (row === undefined) {
     return null;
   }
 
-  return JSON.parse(row.result_json) as ScanResult;
+  if (row.resultJson !== null) {
+    return JSON.parse(row.resultJson) as ScanResult;
+  }
+
+  return {
+    scanId: row.scanId,
+    url: row.url,
+    hostname: row.hostname,
+    status: "processing",
+    startedAt: row.startedAt,
+  } satisfies ScanInProgress;
 }
 
 export function getScanHistory(): ScanHistoryItem[] {

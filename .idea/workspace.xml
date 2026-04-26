@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="f0abf96f-679d-4d26-8b7d-a5a0d937121e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/braum-frontend/src/app/app.routes.server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/braum-frontend/src/app/app.routes.server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/braum-frontend/src/app/pages/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/braum-frontend/src/app/pages/dashboard/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/braum-frontend/src/app/pages/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/braum-frontend/src/app/pages/dashboard/dashboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/braum-frontend/src/app/shared/module-card/module-card.ts" beforeDir="false" afterPath="$PROJECT_DIR$/braum-frontend/src/app/shared/module-card/module-card.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/braum.sqlite-shm" beforeDir="false" afterPath="$PROJECT_DIR$/braum.sqlite-shm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/braum.sqlite-wal" beforeDir="false" afterPath="$PROJECT_DIR$/braum.sqlite-wal" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/db/database.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/database.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/orchestrator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/orchestrator.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scanners/files.scanner.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/scanners/files.scanner.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scanners/ports.scanner.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/scanners/ports.scanner.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/scan.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/scan.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_/home/enemri/Desktop/projects/BRAUM" value="3CtNW6RomWFWAhYlK5Bc0nnGrpy" />
+    </persistenceIdMap>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="3CtNW6RomWFWAhYlK5Bc0nnGrpy" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/enemri/Desktop/projects/BRAUM",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "/home/enemri/Desktop/projects/BRAUM/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.30387.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="f0abf96f-679d-4d26-8b7d-a5a0d937121e" name="Changes" comment="" />
+      <created>1777200935154</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1777200935154</updated>
+      <workItem from="1777200936321" duration="6420000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>

@@ -30,13 +30,15 @@ const SCORE_PENALTIES: Record<FileSeverity, number> = {
   HIGH: 20,
   MEDIUM: 10,
 };
-const REQUEST_TIMEOUT_MS = 4000;
+const REQUEST_TIMEOUT_MS = 3000; // Changed from 4000ms to 3000ms
+const MAX_CONCURRENT_REQUESTS = 5; // Limit concurrent requests
 
 export async function scanFiles(baseUrl: string): Promise<FileScanResult> {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  const findings = await Promise.all(
-    FILE_PROBES.map((probe) => scanFile(normalizedBaseUrl, probe)),
-  );
+
+  // Process file probes in batches to limit concurrency
+  const findings = await processBatch(normalizedBaseUrl, FILE_PROBES, MAX_CONCURRENT_REQUESTS);
+
   const exposedFiles = findings
     .filter((finding) => finding.status === "exposed")
     .map((finding) => ({
@@ -54,6 +56,24 @@ export async function scanFiles(baseUrl: string): Promise<FileScanResult> {
     score: Math.max(0, 100 - penalty),
     findings,
   };
+}
+
+async function processBatch(
+  baseUrl: string,
+  probes: FileProbe[],
+  batchSize: number,
+): Promise<FileFinding[]> {
+  const results: FileFinding[] = [];
+
+  for (let i = 0; i < probes.length; i += batchSize) {
+    const batch = probes.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map((probe) => scanFile(baseUrl, probe)),
+    );
+    results.push(...batchResults);
+  }
+
+  return results;
 }
 
 async function scanFile(

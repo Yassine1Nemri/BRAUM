@@ -1,9 +1,10 @@
-import { createScanRecord, saveScanResult } from "../db/database.js";
+import { saveScanResult } from "../db/database.js";
 import { scanFiles } from "../scanners/files.scanner.js";
 import { scanHeaders } from "../scanners/headers.scanner.js";
 import { scanPorts } from "../scanners/ports.scanner.js";
 import { scanSSL } from "../scanners/ssl.scanner.js";
 import { calculateGrade } from "./scorer.js";
+import { normalizeUrl } from "../utils/url.js";
 import type { FileScanResult } from "../types/file-scan.js";
 import type { HeaderScanResult } from "../types/header-scan.js";
 import type { PortScanResult } from "../types/port-scan.js";
@@ -28,21 +29,56 @@ type ModuleResultMap = {
   files: FileScanResult;
 };
 
+const GLOBAL_SCAN_TIMEOUT_MS = 30000; // 30 second global timeout for entire scan
+
 export async function runScan(
   scanId: string,
   url: string,
   ws: ScanMessageSender,
+  startedAt = new Date().toISOString(),
 ): Promise<ScanResult> {
   const normalizedUrl = normalizeUrl(url);
   const hostname = new URL(normalizedUrl).hostname;
-  const startedAt = new Date().toISOString();
 
-  createScanRecord({
-    scanId,
-    url: normalizedUrl,
-    hostname,
-    startedAt,
-  });
+  // Create global timeout promise
+  const globalTimeoutPromise = new Promise<{
+    settled: PromiseSettledResult<any>[];
+  }>((resolve) =>
+    setTimeout(() => {
+      resolve({
+        settled: [
+          { status: "rejected", reason: { module: "headers", message: "Timeout" } },
+          { status: "rejected", reason: { module: "ssl", message: "Timeout" } },
+          { status: "rejected", reason: { module: "ports", message: "Timeout" } },
+          { status: "rejected", reason: { module: "files", message: "Timeout" } },
+        ],
+      });
+    }, GLOBAL_SCAN_TIMEOUT_MS)
+  );
+
+  const scanPromise = (async () => {
+    const moduleResults: ScanModuleResults = {
+      headers: null,
+      ssl: null,
+      ports: null,
+      files: null,
+    };
+    const errors: ScanModuleError[] = [];
+
+    const tasks = [
+      runModule("headers", scanHeaders(normalizedUrl), scanId, ws),
+      runModule("ssl", scanSSL(hostname), scanId, ws),
+      runModule("ports", scanPorts(hostname), scanId, ws),
+      runModule("files", scanFiles(normalizedUrl), scanId, ws),
+    ];
+
+    const settled = await Promise.allSettled(tasks);
+
+    return { settled };
+  })();
+
+  // Race scan against global timeout
+  const { settled } = await Promise.race([scanPromise, globalTimeoutPromise]);
 
   const moduleResults: ScanModuleResults = {
     headers: null,
@@ -51,15 +87,6 @@ export async function runScan(
     files: null,
   };
   const errors: ScanModuleError[] = [];
-
-  const tasks = [
-    runModule("headers", scanHeaders(normalizedUrl), scanId, ws),
-    runModule("ssl", scanSSL(hostname), scanId, ws),
-    runModule("ports", scanPorts(hostname), scanId, ws),
-    runModule("files", scanFiles(normalizedUrl), scanId, ws),
-  ];
-
-  const settled = await Promise.allSettled(tasks);
 
   for (const item of settled) {
     if (item.status === "fulfilled") {
@@ -146,11 +173,3 @@ async function runModule<TModule extends ScanModule>(
   }
 }
 
-function normalizeUrl(input: string): string {
-  const trimmed = input.trim();
-  const withProtocol = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`;
-
-  return new URL(withProtocol).toString();
-}

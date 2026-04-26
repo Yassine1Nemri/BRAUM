@@ -3,8 +3,19 @@
     <h1 class="text-3xl font-bold mb-6">Scan Dashboard</h1>
     <p class="text-gray-400 mb-8">Scan ID: {{ scanId }}</p>
 
+    <!-- Error State -->
+    <div *ngIf="errorMessage" class="bg-red-900 border border-red-700 rounded-lg p-6 mb-6">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">❌</span>
+        <div>
+          <h2 class="text-xl font-semibold text-red-100">Error</h2>
+          <p class="text-red-200">{{ errorMessage }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading State -->
-    <div *ngIf="!scanResult" class="text-center py-12">
+    <div *ngIf="!scanResult && !errorMessage" class="text-center py-12">
       <div class="inline-block">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
         <p class="text-gray-400">Loading scan results...</p>
@@ -62,7 +73,7 @@
       </div>
     </div>
 
-    <!-- Error State -->
+    <!-- Error State (Scan Failed) -->
     <div *ngIf="scanResult && scanResult.status === 'failed'" class="text-center py-12">
       <p class="text-red-400">Scan failed. Please try again.</p>
     </div>

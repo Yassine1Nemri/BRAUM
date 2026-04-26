@@ -6,7 +6,7 @@ import type { SSLScanResult } from "./ssl-scan.js";
 
 export type ScanModule = "headers" | "ssl" | "ports" | "files";
 export type ScanModuleStatus = "completed" | "failed";
-export type ScanStatus = "running" | "completed" | "failed";
+export type ScanStatus = "processing" | "completed" | "failed";
 
 export interface ScanModuleResults {
   headers: HeaderScanResult | null;
@@ -28,11 +28,19 @@ export interface ScanProgressMessage {
   error?: string;
 }
 
+export interface ScanInProgress {
+  scanId: string;
+  url: string;
+  hostname: string;
+  status: "processing";
+  startedAt: string;
+}
+
 export interface ScanResult {
   scanId: string;
   url: string;
   hostname: string;
-  status: ScanStatus;
+  status: "completed" | "failed";
   startedAt: string;
   completedAt: string;
   results: ScanModuleResults;

@@ -3,8 +3,9 @@ import { createServer } from "node:http";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import { getScanHistory, getScanResult } from "./db/database.js";
+import { createScanRecord, getScanHistory, getScanResult } from "./db/database.js";
 import { runScan } from "./engine/orchestrator.js";
+import { normalizeUrl } from "./utils/url.js";
 import { broadcastToClient, setupWebSocketServer } from "./websocket/ws.server.js";
 
 const app = express();
@@ -12,10 +13,11 @@ const port = 3000;
 const server = createServer(app);
 
 app.use(helmet());
+// @ts-ignore - cors type definition issue
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201'],
   methods: ['GET', 'POST', 'DELETE'],
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -32,27 +34,39 @@ app.post("/api/scan", (req, res) => {
   }
 
   const scanId = randomUUID();
+  const normalizedUrl = normalizeUrl(url);
+  const hostname = new URL(normalizedUrl).hostname;
+  const startedAt = new Date().toISOString();
+
+  createScanRecord({
+    scanId,
+    url: normalizedUrl,
+    hostname,
+    startedAt,
+  });
 
   res.status(202).json({
     scanId,
     status: "started",
   });
 
-  void runScan(scanId, url, broadcastToClient)
-    .then((result) => {
-      broadcastToClient(scanId, {
-        scanId,
-        status: result.status,
-        result,
+  setImmediate(() => {
+    void runScan(scanId, normalizedUrl, broadcastToClient, startedAt)
+      .then((result) => {
+        broadcastToClient(scanId, {
+          scanId,
+          status: result.status,
+          result,
+        });
+      })
+      .catch((error) => {
+        broadcastToClient(scanId, {
+          scanId,
+          status: "failed",
+          error: error instanceof Error ? error.message : "Unknown scan error",
+        });
       });
-    })
-    .catch((error) => {
-      broadcastToClient(scanId, {
-        scanId,
-        status: "failed",
-        error: error instanceof Error ? error.message : "Unknown scan error",
-      });
-    });
+  });
 });
 
 app.get("/api/scan/:id", (req, res) => {

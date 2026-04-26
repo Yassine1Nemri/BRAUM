@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 interface Finding {
-  severity: string;
+  severity: string | undefined;
   message: string;
   [key: string]: any;
 }
@@ -39,7 +39,8 @@ export class ModuleCardComponent {
     }
   }
 
-  findingIcon(severity: string): string {
+  findingIcon(severity: string | undefined): string {
+    if (!severity) return '⚪';
     switch (severity.toLowerCase()) {
       case 'critical':
       case 'high': return '🔴';
